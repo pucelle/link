@@ -65,19 +65,6 @@ async function link(moduleName: string, currentDir: string) {
 	console.log(`✅ Linked module "${moduleName}", version ${moduleVersion}.`)
 }
 
-async function doExec(command: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		exec(command, (err, _stdout, _stderr) => {
-			if (err) {
-				reject(err)
-			}
-			else {
-				resolve()
-			}
-		})
-	})
-}
-
 
 async function getNPMGlobalRoot(): Promise<string> {
 	return new Promise((resolve, reject) => {
@@ -87,6 +74,20 @@ async function getNPMGlobalRoot(): Promise<string> {
 			}
 			else {
 				resolve(stdout.trim())
+			}
+		})
+	})
+}
+
+
+async function doExec(command: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		exec(command, (err, _stdout, _stderr) => {
+			if (err) {
+				reject(err)
+			}
+			else {
+				resolve()
 			}
 		})
 	})
