@@ -40,12 +40,15 @@ async function link(moduleName: string, currentDir: string) {
 	let currentPackageJSON = readJSON(currentPackagePath)
 	let linkedModulePath = path.join(currentDir, 'node_modules', moduleName)
 
-	if (!fs.existsSync(path.dirname(linkedModulePath))) {
-		fs.mkdirSync(path.dirname(linkedModulePath), {recursive: true})
-	}
+	// If exist, don't link, but update module version.
+	if (!fs.existsSync(linkedModulePath)) {
+		if (!fs.existsSync(path.dirname(linkedModulePath))) {
+			fs.mkdirSync(path.dirname(linkedModulePath), {recursive: true})
+		}
 
-	//fs.symlinkSync(linkedModulePath, globalModulePath)
-	await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
+		//fs.symlinkSync(linkedModulePath, globalModulePath)
+		await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
+	}
 
 	if (forDebug) {
 		if (!currentPackageJSON.devDependencies) {
