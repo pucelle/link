@@ -45,7 +45,7 @@ async function link(moduleName: string, currentDir: string) {
 	}
 
 	//fs.symlinkSync(linkedModulePath, globalModulePath)
-	exec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
+	await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
 
 	if (forDebug) {
 		if (!currentPackageJSON.devDependencies) {
@@ -61,7 +61,23 @@ async function link(moduleName: string, currentDir: string) {
 	}
 
 	fs.writeFileSync(currentPackagePath, JSON.stringify(currentPackageJSON, null, '\t'))
+
+	console.log(`✅ Linked module "${moduleName}", version ${moduleVersion}.`)
 }
+
+async function doExec(command: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		exec(command, (err, _stdout, _stderr) => {
+			if (err) {
+				reject(err)
+			}
+			else {
+				resolve()
+			}
+		})
+	})
+}
+
 
 async function getNPMGlobalRoot(): Promise<string> {
 	return new Promise((resolve, reject) => {
