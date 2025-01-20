@@ -10,7 +10,7 @@ let currentDir = process.cwd()
 
 
 if (!moduleName) {
-	throw new Error(`Must provide a module name.`)
+	throw new Error(`⚠️ Must provide a module name.`)
 }
 
 link(moduleName, currentDir)
@@ -19,12 +19,12 @@ link(moduleName, currentDir)
 async function link(moduleName: string, currentDir: string) {
 	let npmRoot = await getNPMGlobalRoot()
 	if (!fs.existsSync(npmRoot)) {
-		throw new Error(`"${npmRoot}" is not exist.`)
+		throw new Error(`⚠️ "${npmRoot}" is not exist.`)
 	}
 
 	let globalModulePath = path.join(npmRoot, moduleName)
 	if (!fs.existsSync(globalModulePath)) {
-		throw new Error(`"${globalModulePath}" is not exist.`)
+		throw new Error(`⚠️ "${globalModulePath}" is not exist.`)
 	}
 
 	let globalPackagePath = path.join(globalModulePath, 'package.json')
@@ -32,7 +32,7 @@ async function link(moduleName: string, currentDir: string) {
 
 	let moduleVersion = globalPackageJSON.version
 	if (!moduleVersion) {
-		throw new Error(`Version for module "${moduleName}" is not exist.`)
+		throw new Error(`⚠️ Version for module "${moduleName}" is not exist.`)
 	}
 
 
@@ -96,7 +96,7 @@ async function doExec(command: string): Promise<void> {
 
 function readJSON(filePath: string) {
 	if (!fs.existsSync(filePath)) {
-		throw new Error(`"${filePath}" is not exist.`)
+		throw new Error(`⚠️ "${filePath}" is not exist.`)
 	}
 
 	let currentPackageText = fs.readFileSync(filePath).toString('utf8')
