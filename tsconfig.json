@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+		"moduleResolution": "Node",
+       	"target": "ES2023",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"rootDir": "src",
+		"outDir": "out",
+		"declaration": false,
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true
+    },
+    "exclude": [
+		"node_modules",
+		"out"
+	]
+}
