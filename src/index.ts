@@ -65,7 +65,7 @@ async function link(moduleName: string, currentDir: string) {
 
 	fs.writeFileSync(currentPackagePath, JSON.stringify(currentPackageJSON, null, '\t'))
 
-	console.log(`✅ Linked module "${moduleName}", version ${moduleVersion}.`)
+	console.log(`✅ Linked module "${moduleName}", version "${moduleVersion}".`)
 }
 
 
