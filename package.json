@@ -16,7 +16,7 @@
 		"prepublish": "npm run build"
 	},
 	"bin": {
-		"lnk": "./bin/link.js"
+		"lnk": "./bin/lnk"
 	},
 	"devDependencies": {
 		"@types/node": "^22.13.14",
