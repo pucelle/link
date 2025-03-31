@@ -46,8 +46,7 @@ async function link(moduleName: string, currentDir: string) {
 			fs.mkdirSync(path.dirname(linkedModulePath), {recursive: true})
 		}
 
-		//fs.symlinkSync(linkedModulePath, globalModulePath)
-		await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
+		fs.symlinkSync(globalModulePath, linkedModulePath, 'dir')
 	}
 
 	if (forDebug) {
@@ -77,20 +76,6 @@ async function getNPMGlobalRoot(): Promise<string> {
 			}
 			else {
 				resolve(stdout.trim())
-			}
-		})
-	})
-}
-
-
-async function doExec(command: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		exec(command, (err, _stdout, _stderr) => {
-			if (err) {
-				reject(err)
-			}
-			else {
-				resolve()
 			}
 		})
 	})
