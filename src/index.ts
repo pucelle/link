@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as os from 'node:os'
 import {exec} from 'child_process'
 
 
@@ -46,7 +47,12 @@ async function link(moduleName: string, currentDir: string) {
 			fs.mkdirSync(path.dirname(linkedModulePath), {recursive: true})
 		}
 
-		fs.symlinkSync(globalModulePath, linkedModulePath, 'dir')
+		if (os.platform() === 'win32') {
+			await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
+		}
+		else {
+			fs.symlinkSync(globalModulePath, linkedModulePath, 'dir')
+		}
 	}
 
 	if (forDebug) {
@@ -81,6 +87,18 @@ async function getNPMGlobalRoot(): Promise<string> {
 	})
 }
 
+async function doExec(command: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		exec(command, (err, _stdout, _stderr) => {
+			if (err) {
+				reject(err)
+			}
+			else {
+				resolve()
+			}
+		})
+	})
+}
 
 function readJSON(filePath: string) {
 	if (!fs.existsSync(filePath)) {
