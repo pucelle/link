@@ -140,18 +140,18 @@ async function linkGlobalModuleToLocal(
 	console.log(`✅ Linked "${moduleName}@${moduleVersion}".`)
 }
 
-async function installGlobalModule(name: string, moduleVersion: string): Promise<string> {
-	process.stdout.write(`⏳ Installing "${name}@${moduleVersion}"...`)
+async function installGlobalModule(moduleName: string, moduleVersion: string): Promise<string> {
+	process.stdout.write(`⏳ Installing "${moduleName}@${moduleVersion}"...`)
 
 	return new Promise((resolve, reject) => {
-		exec(`npm install -g ${name}@${moduleVersion}`, (err, stdout, _stderr) => {
+		exec(`npm install -g ${moduleName}@${moduleVersion}`, (err, stdout, _stderr) => {
 			if (err) {
 				reject(err)
 			}
 			else {
 				process.stdout.clearLine(0);
 				process.stdout.cursorTo(0);
-				process.stdout.write(`✔ Installed "${moduleName}@${moduleVersion}".\n`)
+				process.stdout.write(`🆗 Installed "${moduleName}@${moduleVersion}".\n`)
 				resolve(stdout.trim())
 			}
 		})
