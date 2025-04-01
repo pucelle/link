@@ -137,7 +137,7 @@ async function linkGlobalModuleToLocal(
 		localPackageJSON.dependencies[moduleName] = '^' + globalModuleVersion
 	}
 
-	console.log(`✅ Linked "${moduleName}@${moduleVersion}".`)
+	console.log(`✅ Linked "${moduleName}@${globalModuleVersion}".`)
 }
 
 async function installGlobalModule(moduleName: string, moduleVersion: string): Promise<string> {
