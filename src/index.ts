@@ -78,6 +78,15 @@ async function linkGlobalModuleToLocal(
 	moduleVersion: string,
 	localPackageJSON: PackageJSON
 ) {
+	let linkedModulePath = path.join(currentDir, 'node_modules', moduleName)
+
+	// If exist, do nothing.
+	if (fs.existsSync(linkedModulePath)) {
+		return
+	}
+
+
+	// Install global module.
 	let globalModulePath = path.join(npmRoot, moduleName)
 
 	if (!fs.existsSync(globalModulePath)) {
@@ -96,20 +105,17 @@ async function linkGlobalModuleToLocal(
 		throw new Error(`⚠️ Version for module "${moduleName}" is not exist.`)
 	}
 
-	let linkedModulePath = path.join(currentDir, 'node_modules', moduleName)
 
-	// If exist, don't link, but update module version.
-	if (!fs.existsSync(linkedModulePath)) {
-		if (!fs.existsSync(path.dirname(linkedModulePath))) {
-			fs.mkdirSync(path.dirname(linkedModulePath), {recursive: true})
-		}
+	// Link to local module
+	if (!fs.existsSync(path.dirname(linkedModulePath))) {
+		fs.mkdirSync(path.dirname(linkedModulePath), {recursive: true})
+	}
 
-		if (os.platform() === 'win32') {
-			await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
-		}
-		else {
-			fs.symlinkSync(globalModulePath, linkedModulePath, 'dir')
-		}
+	if (os.platform() === 'win32') {
+		await doExec(`mklink /j "${linkedModulePath}" "${globalModulePath}"`)
+	}
+	else {
+		fs.symlinkSync(globalModulePath, linkedModulePath, 'dir')
 	}
 
 	// If has been included in `devDependencies`, update it without need of `-D`.

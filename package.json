@@ -1,7 +1,7 @@
 {
 	"name": "@pucelle/link",
 	"version": "1.0.0",
-	"description": "Link global modules",
+	"description": "Link global modules to local",
 	"author": "pucelle",
 	"license": "MIT",
 	"homepage": "https://github.com/pucelle/link",
@@ -13,7 +13,8 @@
 	"scripts": {
 		"build": "tsc -b",
 		"watch": "tsc -b -w",
-		"prepublish": "npm run build"
+		"prepublish": "npm run build",
+		"publish": "npm publish --access public"
 	},
 	"bin": {
 		"lnk": "./bin/lnk"
