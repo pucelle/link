@@ -4,8 +4,15 @@ import * as os from 'node:os'
 import {exec} from 'child_process'
 
 
+interface PackageJSON {
+	version?: string
+	dependencies?: Record<string, string>
+	devDependencies?: Record<string, string>
+}
+
+
 let argv = process.argv.slice(2)
-let forDebug = argv.includes('-D')
+let forDevelopment = argv.includes('-D')
 let moduleName = argv.filter(p => !p.startsWith('-'))[0]
 let currentDir = process.cwd()
 
@@ -17,28 +24,78 @@ if (!moduleName) {
 link(moduleName, currentDir)
 
 
+
+/**
+ * - lnk global-module-name: Link specified global module, if is not exist, will install in.
+ * - lnk *: Link all modules listed in package.json, if any one is not exist, will install in.
+ */
 async function link(moduleName: string, currentDir: string) {
 	let npmRoot = await getNPMGlobalRoot()
 	if (!fs.existsSync(npmRoot)) {
 		throw new Error(`⚠️ "${npmRoot}" is not exist.`)
 	}
 
+	let localPackagePath = path.join(currentDir, 'package.json')
+	let localPackageJSON = readJSON(localPackagePath) as PackageJSON
+
+	if (moduleName === '*') {
+		if (localPackageJSON.dependencies) {
+			for (let [name, version] of Object.entries(localPackageJSON.dependencies)) {
+				await linkGlobalModuleToLocal(npmRoot, name, version, localPackageJSON)
+			}
+		}
+
+		if (forDevelopment && localPackageJSON.devDependencies) {
+			for (let [name, version] of Object.entries(localPackageJSON.devDependencies)) {
+				await linkGlobalModuleToLocal(npmRoot, name, version, localPackageJSON)
+			}
+		}
+	}
+	else {
+		await linkGlobalModuleToLocal(npmRoot, moduleName, 'latest', localPackageJSON)
+	}
+
+	fs.writeFileSync(localPackagePath, JSON.stringify(localPackageJSON, null, '\t'))
+}
+
+
+async function getNPMGlobalRoot(): Promise<string> {
+	return new Promise((resolve, reject) => {
+		exec('npm -g root', (err, stdout, _stderr) => {
+			if (err) {
+				reject(err)
+			}
+			else {
+				resolve(stdout.trim())
+			}
+		})
+	})
+}
+
+async function linkGlobalModuleToLocal(
+	npmRoot: string,
+	moduleName: string,
+	moduleVersion: string,
+	localPackageJSON: PackageJSON
+) {
 	let globalModulePath = path.join(npmRoot, moduleName)
+
+	if (!fs.existsSync(globalModulePath)) {
+		await installGlobalModule(moduleName, moduleVersion)
+	}
+
 	if (!fs.existsSync(globalModulePath)) {
 		throw new Error(`⚠️ "${globalModulePath}" is not exist.`)
 	}
 
 	let globalPackagePath = path.join(globalModulePath, 'package.json')
-	let globalPackageJSON = readJSON(globalPackagePath)
+	let globalPackageJSON = readJSON(globalPackagePath) as PackageJSON
 
-	let moduleVersion = globalPackageJSON.version
-	if (!moduleVersion) {
+	let globalModuleVersion = globalPackageJSON.version
+	if (!globalModuleVersion) {
 		throw new Error(`⚠️ Version for module "${moduleName}" is not exist.`)
 	}
 
-
-	let currentPackagePath = path.join(currentDir, 'package.json')
-	let currentPackageJSON = readJSON(currentPackagePath)
 	let linkedModulePath = path.join(currentDir, 'node_modules', moduleName)
 
 	// If exist, don't link, but update module version.
@@ -55,32 +112,46 @@ async function link(moduleName: string, currentDir: string) {
 		}
 	}
 
-	if (forDebug) {
-		if (!currentPackageJSON.devDependencies) {
-			currentPackageJSON.devDependencies = {}
-		}
-		currentPackageJSON.devDependencies[moduleName] = '^' + moduleVersion
+	// If has been included in `devDependencies`, update it without need of `-D`.
+	let addToDev: boolean
+	if (localPackageJSON.devDependencies?.[moduleName]) {
+		addToDev = true
+	}
+	else if (localPackageJSON.dependencies?.[moduleName]) {
+		addToDev = false
 	}
 	else {
-		if (!currentPackageJSON.dependencies) {
-			currentPackageJSON.dependencies = {}
-		}
-		currentPackageJSON.dependencies[moduleName] = '^' + moduleVersion
+		addToDev = forDevelopment
 	}
 
-	fs.writeFileSync(currentPackagePath, JSON.stringify(currentPackageJSON, null, '\t'))
+	if (addToDev) {
+		if (!localPackageJSON.devDependencies) {
+			localPackageJSON.devDependencies = {}
+		}
+		localPackageJSON.devDependencies[moduleName] = '^' + globalModuleVersion
+	}
+	else {
+		if (!localPackageJSON.dependencies) {
+			localPackageJSON.dependencies = {}
+		}
+		localPackageJSON.dependencies[moduleName] = '^' + globalModuleVersion
+	}
 
-	console.log(`✅ Linked module "${moduleName}", version "${moduleVersion}".`)
+	console.log(`✅ Linked "${moduleName}@${moduleVersion}".`)
 }
 
+async function installGlobalModule(name: string, moduleVersion: string): Promise<string> {
+	process.stdout.write(`⏳ Installing "${name}@${moduleVersion}"...`)
 
-async function getNPMGlobalRoot(): Promise<string> {
 	return new Promise((resolve, reject) => {
-		exec('npm -g root', (err, stdout, _stderr) => {
+		exec(`npm install -g ${name}@${moduleVersion}`, (err, stdout, _stderr) => {
 			if (err) {
 				reject(err)
 			}
 			else {
+				process.stdout.clearLine(0);
+				process.stdout.cursorTo(0);
+				process.stdout.write(`✔ Installed "${moduleName}@${moduleVersion}".\n`)
 				resolve(stdout.trim())
 			}
 		})
