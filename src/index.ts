@@ -13,6 +13,7 @@ interface PackageJSON {
 
 let argv = process.argv.slice(2)
 let forDevelopment = argv.includes('-D')
+let linkLatest = argv.includes('-F')
 let moduleName = argv.filter(p => !p.startsWith('-'))[0]
 let currentDir = process.cwd()
 
@@ -41,13 +42,13 @@ async function link(moduleName: string, currentDir: string) {
 	if (moduleName === '*') {
 		if (localPackageJSON.dependencies) {
 			for (let [name, version] of Object.entries(localPackageJSON.dependencies)) {
-				await linkGlobalModuleToLocal(npmRoot, name, version, localPackageJSON)
+				await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, localPackageJSON)
 			}
 		}
 
 		if (forDevelopment && localPackageJSON.devDependencies) {
 			for (let [name, version] of Object.entries(localPackageJSON.devDependencies)) {
-				await linkGlobalModuleToLocal(npmRoot, name, version, localPackageJSON)
+				await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, localPackageJSON)
 			}
 		}
 	}
