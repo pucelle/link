@@ -79,7 +79,12 @@ async function linkGlobalModuleToLocal(
 	moduleVersion: string,
 	packageJSON: PackageJSON
 ) {
-	let localModulePath = path.join(currentDir, 'node_modules', moduleName)
+	let localModulePaths = [currentDir, path.dirname(currentDir), path.dirname(path.dirname(currentDir))]
+		.map(dir => path.join(dir, 'node_modules', moduleName))
+
+	let localModulePath = localModulePaths.find(modulePath => fs.existsSync(modulePath))
+		?? localModulePaths[0]
+
 	let linked = false
 
 
