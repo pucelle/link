@@ -43,7 +43,19 @@ async function link(moduleName: string, currentDir: string) {
 			throw new Error(`⚠️ Module name in "${sourceModulePath}" is not exist.`)
 		}
 
-		await linkGlobalModuleToLocal('', sourcePackageJSON.name, 'latest', packageJSON, sourceModulePath)
+		let relativeModulePath = path.relative(currentDir, sourceModulePath).replaceAll(path.sep, '/')
+		if (!relativeModulePath.startsWith('.')) {
+			relativeModulePath = './' + relativeModulePath
+		}
+
+		await linkGlobalModuleToLocal(
+			'',
+			sourcePackageJSON.name,
+			'latest',
+			packageJSON,
+			sourceModulePath,
+			'file:' + relativeModulePath
+		)
 	}
 	else {
 		let npmRoot = await getNPMGlobalRoot()
@@ -91,7 +103,8 @@ async function linkGlobalModuleToLocal(
 	moduleName: string,
 	moduleVersion: string,
 	packageJSON: PackageJSON,
-	sourceModulePath?: string
+	sourceModulePath?: string,
+	dependencyVersion?: string
 ) {
 	let localModuleDirs = sourceModulePath
 		? [currentDir]
@@ -146,7 +159,7 @@ async function linkGlobalModuleToLocal(
 	// If has been included in `devDependencies`, update it without need of `-D`.
 	let addToDev: boolean
 	let oldVersion: string | null = null
-	let newVersion = '^' + localModuleVersion
+	let newVersion = dependencyVersion ?? '^' + localModuleVersion
 
 	if (packageJSON.devDependencies?.[moduleName]) {
 		oldVersion = packageJSON.devDependencies[moduleName]

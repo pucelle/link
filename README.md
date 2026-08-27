@@ -4,7 +4,7 @@
 Registers a `lnk` command:
 
 - `lnk module-name`: Link global module to local and update "dependencies".
-- `lnk ../module-path`: Link a module from a relative directory.
+- `lnk ../module-path`: Link a module from a relative directory and save its `file:` dependency.
 - `lnk *`: Link all required dependencies from global modules to local.
 - `-D`: Link required dependencies and devDependencies from global modules to local.
 - `-L`: If global module is not installed, will install latest version.
