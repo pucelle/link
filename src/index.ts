@@ -37,25 +37,7 @@ async function link(moduleName: string, currentDir: string) {
 	let packageJSON = readJSON(packagePath) as PackageJSON
 
 	if (moduleName.startsWith('.')) {
-		let sourceModulePath = path.resolve(currentDir, moduleName)
-		let sourcePackageJSON = readJSON(path.join(sourceModulePath, 'package.json')) as PackageJSON
-		if (!sourcePackageJSON.name) {
-			throw new Error(`⚠️ Module name in "${sourceModulePath}" is not exist.`)
-		}
-
-		let relativeModulePath = path.relative(currentDir, sourceModulePath).replaceAll(path.sep, '/')
-		if (!relativeModulePath.startsWith('.')) {
-			relativeModulePath = './' + relativeModulePath
-		}
-
-		await linkGlobalModuleToLocal(
-			'',
-			sourcePackageJSON.name,
-			'latest',
-			packageJSON,
-			sourceModulePath,
-			'file:' + relativeModulePath
-		)
+		await linkRelativeModuleToLocal(moduleName, packageJSON)
 	}
 	else {
 		let npmRoot = await getNPMGlobalRoot()
@@ -66,13 +48,13 @@ async function link(moduleName: string, currentDir: string) {
 		if (moduleName === '*') {
 			if (packageJSON.dependencies) {
 				for (let [name, version] of Object.entries(packageJSON.dependencies)) {
-					await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, packageJSON)
+					await linkDependencyToLocal(npmRoot, name, version, packageJSON)
 				}
 			}
 
 			if (forDevelopment && packageJSON.devDependencies) {
 				for (let [name, version] of Object.entries(packageJSON.devDependencies)) {
-					await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, packageJSON)
+					await linkDependencyToLocal(npmRoot, name, version, packageJSON)
 				}
 			}
 		}
@@ -82,6 +64,53 @@ async function link(moduleName: string, currentDir: string) {
 	}
 
 	fs.writeFileSync(packagePath, JSON.stringify(packageJSON, null, '\t'))
+}
+
+
+async function linkDependencyToLocal(
+	npmRoot: string,
+	moduleName: string,
+	moduleVersion: string,
+	packageJSON: PackageJSON
+) {
+	if (moduleVersion.startsWith('file:')) {
+		await linkRelativeModuleToLocal(moduleVersion.slice('file:'.length), packageJSON, moduleName)
+	}
+	else {
+		await linkGlobalModuleToLocal(
+			npmRoot,
+			moduleName,
+			linkLatest ? 'latest': moduleVersion,
+			packageJSON
+		)
+	}
+}
+
+async function linkRelativeModuleToLocal(
+	relativeModulePath: string,
+	packageJSON: PackageJSON,
+	moduleName?: string
+) {
+	let sourceModulePath = path.resolve(currentDir, relativeModulePath)
+	let sourcePackageJSON = readJSON(path.join(sourceModulePath, 'package.json')) as PackageJSON
+	let resolvedModuleName = moduleName ?? sourcePackageJSON.name
+	if (!resolvedModuleName) {
+		throw new Error(`⚠️ Module name in "${sourceModulePath}" is not exist.`)
+	}
+
+	let normalizedModulePath = path.relative(currentDir, sourceModulePath).replaceAll(path.sep, '/')
+	if (!normalizedModulePath.startsWith('.')) {
+		normalizedModulePath = './' + normalizedModulePath
+	}
+
+	await linkGlobalModuleToLocal(
+		'',
+		resolvedModuleName,
+		'latest',
+		packageJSON,
+		sourceModulePath,
+		'file:' + normalizedModulePath
+	)
 }
 
 
