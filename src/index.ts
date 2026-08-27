@@ -5,6 +5,7 @@ import {exec} from 'child_process'
 
 
 interface PackageJSON {
+	name?: string
 	version?: string
 	dependencies?: Record<string, string>
 	devDependencies?: Record<string, string>
@@ -28,32 +29,44 @@ link(moduleName, currentDir)
 
 /**
  * - lnk global-module-name: Link specified global module, if is not exist, will install in.
+ * - lnk ../module-path: Link a module from a relative directory.
  * - lnk *: Link all modules listed in package.json, if any one is not exist, will install in.
  */
 async function link(moduleName: string, currentDir: string) {
-	let npmRoot = await getNPMGlobalRoot()
-	if (!fs.existsSync(npmRoot)) {
-		throw new Error(`⚠️ "${npmRoot}" is not exist.`)
-	}
-
 	let packagePath = path.join(currentDir, 'package.json')
 	let packageJSON = readJSON(packagePath) as PackageJSON
 
-	if (moduleName === '*') {
-		if (packageJSON.dependencies) {
-			for (let [name, version] of Object.entries(packageJSON.dependencies)) {
-				await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, packageJSON)
-			}
+	if (moduleName.startsWith('.')) {
+		let sourceModulePath = path.resolve(currentDir, moduleName)
+		let sourcePackageJSON = readJSON(path.join(sourceModulePath, 'package.json')) as PackageJSON
+		if (!sourcePackageJSON.name) {
+			throw new Error(`⚠️ Module name in "${sourceModulePath}" is not exist.`)
 		}
 
-		if (forDevelopment && packageJSON.devDependencies) {
-			for (let [name, version] of Object.entries(packageJSON.devDependencies)) {
-				await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, packageJSON)
-			}
-		}
+		await linkGlobalModuleToLocal('', sourcePackageJSON.name, 'latest', packageJSON, sourceModulePath)
 	}
 	else {
-		await linkGlobalModuleToLocal(npmRoot, moduleName, 'latest', packageJSON)
+		let npmRoot = await getNPMGlobalRoot()
+		if (!fs.existsSync(npmRoot)) {
+			throw new Error(`⚠️ "${npmRoot}" is not exist.`)
+		}
+
+		if (moduleName === '*') {
+			if (packageJSON.dependencies) {
+				for (let [name, version] of Object.entries(packageJSON.dependencies)) {
+					await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, packageJSON)
+				}
+			}
+
+			if (forDevelopment && packageJSON.devDependencies) {
+				for (let [name, version] of Object.entries(packageJSON.devDependencies)) {
+					await linkGlobalModuleToLocal(npmRoot, name, linkLatest ? 'latest': version, packageJSON)
+				}
+			}
+		}
+		else {
+			await linkGlobalModuleToLocal(npmRoot, moduleName, 'latest', packageJSON)
+		}
 	}
 
 	fs.writeFileSync(packagePath, JSON.stringify(packageJSON, null, '\t'))
@@ -77,9 +90,14 @@ async function linkGlobalModuleToLocal(
 	npmRoot: string,
 	moduleName: string,
 	moduleVersion: string,
-	packageJSON: PackageJSON
+	packageJSON: PackageJSON,
+	sourceModulePath?: string
 ) {
-	let localModulePaths = [currentDir, path.dirname(currentDir), path.dirname(path.dirname(currentDir))]
+	let localModuleDirs = sourceModulePath
+		? [currentDir]
+		: [currentDir, path.dirname(currentDir), path.dirname(path.dirname(currentDir))]
+	
+	let localModulePaths = localModuleDirs
 		.map(dir => path.join(dir, 'node_modules', moduleName))
 
 	let localModulePath = localModulePaths.find(modulePath => fs.existsSync(modulePath))
@@ -88,16 +106,16 @@ async function linkGlobalModuleToLocal(
 	let linked = false
 
 
-	// If  local is not exist, link global.
+	// If local does not exist, link the relative or global module.
 	if (!fs.existsSync(localModulePath)) {
-		let globalModulePath = path.join(npmRoot, moduleName)
+		let moduleSourcePath = sourceModulePath ?? path.join(npmRoot, moduleName)
 
-		if (!fs.existsSync(globalModulePath)) {
+		if (!sourceModulePath && !fs.existsSync(moduleSourcePath)) {
 			await installGlobalModule(moduleName, moduleVersion)
 		}
 
-		if (!fs.existsSync(globalModulePath)) {
-			throw new Error(`⚠️ "${globalModulePath}" is not exist.`)
+		if (!fs.existsSync(moduleSourcePath)) {
+			throw new Error(`⚠️ "${moduleSourcePath}" is not exist.`)
 		}
 
 		// Link to local module
@@ -106,10 +124,10 @@ async function linkGlobalModuleToLocal(
 		}
 
 		if (os.platform() === 'win32') {
-			await doExec(`mklink /j "${localModulePath}" "${globalModulePath}"`)
+			await doExec(`mklink /j "${localModulePath}" "${moduleSourcePath}"`)
 		}
 		else {
-			fs.symlinkSync(globalModulePath, localModulePath, 'dir')
+			fs.symlinkSync(moduleSourcePath, localModulePath, 'dir')
 		}
 
 		linked = true
