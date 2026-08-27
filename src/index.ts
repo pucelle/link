@@ -138,7 +138,7 @@ async function linkGlobalModuleToLocal(
 	let localModuleDirs = sourceModulePath
 		? [currentDir]
 		: [currentDir, path.dirname(currentDir), path.dirname(path.dirname(currentDir))]
-	
+
 	let localModulePaths = localModuleDirs
 		.map(dir => path.join(dir, 'node_modules', moduleName))
 
@@ -200,6 +200,10 @@ async function linkGlobalModuleToLocal(
 	}
 	else {
 		addToDev = forDevelopment
+	}
+
+	if (oldVersion === '*' || oldVersion === 'latest') {
+		newVersion = oldVersion
 	}
 
 	if (addToDev) {
